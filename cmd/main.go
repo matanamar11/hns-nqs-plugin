@@ -55,6 +55,7 @@ func init() {
 }
 
 func main() {
+	var disableUpdates bool
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
@@ -71,6 +72,9 @@ func main() {
 		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
+	flag.BoolVar(&disableUpdates, "disable-updates", false,
+		"Disable the updating of roots and secondary roots")
+
 	opts := zap.Options{
 		Development: true,
 	}
@@ -145,8 +149,9 @@ func main() {
 	}
 
 	if err = (&controllers.NodeQuotaConfigReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:         mgr.GetClient(),
+		Scheme:         mgr.GetScheme(),
+		DisableUpdates: disableUpdates,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NodeQuotaConfig")
 		os.Exit(1)

@@ -53,6 +53,7 @@ manager:
     - "--leader-elect"
     - "--health-probe-bind-address=:8081"
     - "--metrics-bind-address=:8443"
+    -  "--enable-updates=true"
   ports:
     https:
       # -- The port for the HTTPS endpoint.
@@ -143,4 +144,3 @@ serviceMonitor:
   selector:
     matchLabels:
       control-plane: controller-manager
-

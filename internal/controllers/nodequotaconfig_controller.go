@@ -47,7 +47,8 @@ import (
 // NodeQuotaConfigReconciler reconciles a NodeQuotaConfig object
 type NodeQuotaConfigReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme         *runtime.Scheme
+	DisableUpdates bool
 }
 
 //+kubebuilder:rbac:groups=dana.hns.io,resources=nodequotaconfigs,verbs=get;list;watch;create;update;patch;delete
@@ -59,6 +60,7 @@ type NodeQuotaConfigReconciler struct {
 //+kubebuilder:rbac:groups=dana.hns.io,resources=nodequotaconfigs/finalizers,verbs=update
 
 func (r *NodeQuotaConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+
 	logger := log.FromContext(ctx)
 	config := &danav1alpha1.NodeQuotaConfig{}
 	if err := r.Get(ctx, types.NamespacedName{Name: req.Name, Namespace: req.Namespace}, config); err != nil {
@@ -127,12 +129,15 @@ func (r *NodeQuotaConfigReconciler) CalculateRootSubnamespaces(ctx context.Conte
 			processedSecondaryRoots = append(processedSecondaryRoots, secondaryRootSns)
 			rootResources = utils.MergeTwoResourceList(secondaryRootSns.Spec.ResourceQuotaSpec.Hard, rootResources)
 		}
-		if err := utils.UpdateRootSubnamespace(ctx, rootResources, rootSubnamespace, logger, r.Client); err != nil {
-			logger.Info(fmt.Sprintf("Error updating root subnamespace %s: %v", rootSubnamespace.RootNamespace, err.Error()))
-		}
+		if !r.DisableUpdates {
+			if err := utils.UpdateRootSubnamespace(ctx, rootResources, rootSubnamespace, logger, r.Client); err != nil {
+				logger.Info(fmt.Sprintf("Error updating root subnamespace %s: %v", rootSubnamespace.RootNamespace, err.Error()))
+			}
 
-		if err := utils.UpdateProcessedSecondaryRoots(ctx, processedSecondaryRoots, logger, r.Client); err != nil {
-			logger.Info(fmt.Sprintf("Error updating secondary root subnamespace: %v", err.Error()))
+			if err := utils.UpdateProcessedSecondaryRoots(ctx, processedSecondaryRoots, logger, r.Client); err != nil {
+				logger.Info(fmt.Sprintf("Error updating secondary root subnamespace: %v", err.Error()))
+			}
+
 		}
 	}
 	return requeue, nil
